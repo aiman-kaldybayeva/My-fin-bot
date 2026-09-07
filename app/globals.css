@@ -185,8 +185,10 @@ nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; max-wid
 .dial { position: relative; width: 240px; height: 240px; }
 .dial svg { display: block; width: 240px; height: 240px; overflow: visible; touch-action: none; }
 .dial .track { fill: none; stroke: var(--bg); stroke-width: 16; stroke-linecap: round; }
-.dial .prog { fill: none; stroke: url(#dialGrad); stroke-width: 16; stroke-linecap: round; filter: drop-shadow(0 0 10px rgba(95, 132, 223, 0.8)); transition: stroke-dashoffset 0.05s linear; }
-.dial.over .prog { filter: drop-shadow(0 0 12px rgba(255, 90, 106, 0.9)); }
+.dial .prog { fill: none; stroke-width: 16; stroke-linecap: round; transition: stroke-dashoffset 0.05s linear, stroke 0.2s; }
+.dial .prog:not(.prog-pale) { filter: drop-shadow(0 0 10px rgba(95, 132, 223, 0.6)); }
+.dial.over .prog:not(.prog-pale) { filter: drop-shadow(0 0 12px rgba(255, 90, 106, 0.8)); }
+.dial .marker { fill: #fff; stroke: var(--bg); stroke-width: 3; }
 .dial .handle { fill: #fff; stroke: var(--accent); stroke-width: 4; filter: drop-shadow(0 0 8px rgba(95, 132, 223, 0.95)); cursor: grab; touch-action: none; }
 .dial .handle:active { cursor: grabbing; }
 .dial.over .handle { stroke: #ff5a6a; filter: drop-shadow(0 0 10px rgba(255, 90, 106, 0.95)); }

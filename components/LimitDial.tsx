@@ -13,6 +13,24 @@ const fmt = (n: number) =>
     Math.round(Math.abs(n))
   );
 
+// Interpolates between blue (low usage) and red (at/over the limit).
+function colorForRatio(ratio: number) {
+  const t = Math.min(1, Math.max(0, ratio));
+  const from = [95, 132, 223]; // #5F84DF
+  const to = [255, 90, 106]; // #FF5A6A
+  const mix = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+  return `rgb(${mix[0]}, ${mix[1]}, ${mix[2]})`;
+}
+
+function pointOnCircle(percent: number, radius: number) {
+  const angleDeg = percent * 360 - 90; // -90 so 0% starts at the top
+  const angleRad = (angleDeg * Math.PI) / 180;
+  return {
+    x: 120 + radius * Math.cos(angleRad),
+    y: 120 + radius * Math.sin(angleRad),
+  };
+}
+
 export default function LimitDial({
   spentToday,
   dailyLimit,
@@ -33,15 +51,23 @@ export default function LimitDial({
     if (!dragging.current) setLiveLimit(dailyLimit);
   }, [dailyLimit]);
 
-  const percent = Math.min(100, Math.max(0, (liveLimit / maxScale) * 100));
   const radius = 100;
   const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - percent / 100);
 
-  const angleDeg = (percent / 100) * 360 - 90; // -90 so 0% starts at the top
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const handleX = 120 + radius * Math.cos(angleRad);
-  const handleY = 120 + radius * Math.sin(angleRad);
+  const limitPercent = Math.min(1, Math.max(0, liveLimit / maxScale));
+  const spentPercent = Math.min(1, Math.max(0, spentToday / maxScale));
+
+  // How close today's spending is to the limit (drives the blue -> red color).
+  const ratio = liveLimit > 0 ? spentToday / liveLimit : 0;
+  const brightColor = colorForRatio(ratio);
+
+  // Pale arc = full range up to the limit. Bright arc (drawn on top) only
+  // covers the part actually spent, so what's left after it reads as paler.
+  const paleOffset = circumference * (1 - limitPercent);
+  const brightOffset = circumference * (1 - Math.min(spentPercent, limitPercent || spentPercent));
+
+  const handlePos = pointOnCircle(limitPercent, radius);
+  const markerPos = pointOnCircle(spentPercent, radius);
 
   const overLimit = dailyLimit > 0 && spentToday > dailyLimit;
 
@@ -87,28 +113,41 @@ export default function LimitDial({
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          <defs>
-            <linearGradient id="dialGrad" gradientUnits="userSpaceOnUse" x1="34" y1="150" x2="206" y2="150">
-              <stop offset="0" stopColor="#5F84DF" />
-              <stop offset="0.5" stopColor="#93B2FF" />
-              <stop offset="0.8" stopColor="#C77BC0" />
-              <stop offset="1" stopColor="#FF5A6A" />
-            </linearGradient>
-          </defs>
           <circle className="track" cx="120" cy="120" r={radius} />
+
+          {/* full range up to the limit, pale */}
+          <circle
+            className="prog prog-pale"
+            cx="120"
+            cy="120"
+            r={radius}
+            stroke={brightColor}
+            strokeOpacity={0.25}
+            strokeDasharray={circumference}
+            strokeDashoffset={paleOffset}
+            transform="rotate(-90 120 120)"
+          />
+
+          {/* actually spent, bright */}
           <circle
             className="prog"
             cx="120"
             cy="120"
             r={radius}
+            stroke={brightColor}
             strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
+            strokeDashoffset={brightOffset}
             transform="rotate(-90 120 120)"
           />
+
+          {/* marker: today's current spend level */}
+          <circle className="marker" cx={markerPos.x} cy={markerPos.y} r={6} />
+
+          {/* handle: drag to set the limit */}
           <circle
             className="handle"
-            cx={handleX}
-            cy={handleY}
+            cx={handlePos.x}
+            cy={handlePos.y}
             r={12}
             onPointerDown={handlePointerDown}
           />
