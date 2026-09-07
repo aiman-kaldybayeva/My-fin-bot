@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { ensureProfile } from "@/lib/ensureProfile";
+import { profileErrorResponse } from "@/lib/profileError";
 
 function startOfTodayISO() {
   const d = new Date();
@@ -30,8 +31,8 @@ export async function GET(req: NextRequest) {
   const initData = searchParams.get("initData") || "";
 
   const profile = await ensureProfile(initData);
-  if (!profile) {
-    return NextResponse.json({ error: "Неверные данные Telegram." }, { status: 401 });
+  if (!profile.ok) {
+    return profileErrorResponse(profile);
   }
   const userId = profile.user.id;
 
@@ -87,8 +88,8 @@ export async function POST(req: NextRequest) {
   const { initData, amount, type, category_id, note } = await req.json();
 
   const profile = await ensureProfile(initData);
-  if (!profile) {
-    return NextResponse.json({ error: "Неверные данные Telegram." }, { status: 401 });
+  if (!profile.ok) {
+    return profileErrorResponse(profile);
   }
 
   if (!amount || amount <= 0 || !["income", "expense"].includes(type)) {

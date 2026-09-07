@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { ensureProfile } from "@/lib/ensureProfile";
+import { profileErrorResponse } from "@/lib/profileError";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -8,8 +9,8 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type") || "expense";
 
   const profile = await ensureProfile(initData);
-  if (!profile) {
-    return NextResponse.json({ error: "Неверные данные Telegram." }, { status: 401 });
+  if (!profile.ok) {
+    return profileErrorResponse(profile);
   }
 
   const { data, error } = await supabaseAdmin
@@ -31,8 +32,8 @@ export async function POST(req: NextRequest) {
   const { initData, name, type } = await req.json();
 
   const profile = await ensureProfile(initData);
-  if (!profile) {
-    return NextResponse.json({ error: "Неверные данные Telegram." }, { status: 401 });
+  if (!profile.ok) {
+    return profileErrorResponse(profile);
   }
   if (!name || !type) {
     return NextResponse.json({ error: "Укажи название и тип категории." }, { status: 400 });

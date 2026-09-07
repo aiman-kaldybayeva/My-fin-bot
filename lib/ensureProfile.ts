@@ -1,14 +1,28 @@
 import { verifyTelegramInitData, TelegramUser } from "@/lib/verifyTelegram";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+export type EnsureProfileResult =
+  | { ok: true; user: TelegramUser; dailyLimit: number }
+  | { ok: false; reason: "telegram"; detail?: string }
+  | { ok: false; reason: "database"; detail: string };
+
 export async function ensureProfile(
   initData: string
-): Promise<{ user: TelegramUser; dailyLimit: number } | null> {
-  const user = verifyTelegramInitData(
-    initData || "",
-    process.env.TELEGRAM_BOT_TOKEN as string
-  );
-  if (!user) return null;
+): Promise<EnsureProfileResult> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!botToken) {
+    return {
+      ok: false,
+      reason: "database",
+      detail: "TELEGRAM_BOT_TOKEN не задан на сервере (проверь переменные окружения в Vercel).",
+    };
+  }
+
+  const user = verifyTelegramInitData(initData || "", botToken);
+  if (!user) {
+    return { ok: false, reason: "telegram" };
+  }
 
   const { data, error } = await supabaseAdmin
     .from("profiles")
@@ -23,7 +37,9 @@ export async function ensureProfile(
     .select("daily_limit")
     .single();
 
-  if (error) return null;
+  if (error) {
+    return { ok: false, reason: "database", detail: error.message };
+  }
 
-  return { user, dailyLimit: Number(data?.daily_limit || 0) };
+  return { ok: true, user, dailyLimit: Number(data?.daily_limit || 0) };
 }
