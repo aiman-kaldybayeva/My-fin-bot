@@ -23,14 +23,8 @@ export default function SettingsPage() {
     setError(null);
     setSaved(false);
     const value = parseFloat(limit.replace(",", "."));
-    if (Number.isNaN(value) || value < 0) {
-      setError("Введи корректное число.");
-      return;
-    }
-    if (!initData) {
-      setError("Открой приложение через Telegram.");
-      return;
-    }
+    if (Number.isNaN(value) || value < 0) return setError("Введи корректное число.");
+    if (!initData) return setError("Открой приложение через Telegram.");
 
     setSaving(true);
     const res = await fetch("/api/limit", {
@@ -41,49 +35,50 @@ export default function SettingsPage() {
     const data = await res.json();
     setSaving(false);
 
-    if (data.error) {
-      setError(data.error);
-    } else {
+    if (data.error) setError(data.error);
+    else {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-xl font-bold">Настройки</h1>
+    <>
+      <div className="center-head">
+        <h1>Настройки</h1>
+        <p>Управляй дневным лимитом трат</p>
+      </div>
 
-      <div className="card px-5 py-6">
-        <label className="mb-2 block text-sm text-tghint">
-          Ежедневная норма трат
-        </label>
-        <div className="flex items-center gap-2">
+      <div className="panel">
+        <div className="limit-head">
+          <div className="ic">💰</div>
+          <div>
+            <p className="t">Дневной лимит трат</p>
+            <p className="s">Сколько можно тратить в день</p>
+          </div>
+        </div>
+        <label className="mini-label" htmlFor="limit-input">Сумма лимита</label>
+        <div className="big-input">
+          <span className="cur">₸</span>
           <input
-            type="number"
+            id="limit-input"
             inputMode="decimal"
-            placeholder="Например, 10000"
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
-            className="w-full bg-transparent text-3xl font-bold outline-none placeholder:text-tghint"
+            placeholder="Например, 10000"
           />
-          <span className="text-2xl text-tghint">₸</span>
         </div>
-        <p className="mt-2 text-xs text-tghint">
-          Если потратишь больше этой суммы за день — бот пришлёт
-          предупреждение в чат.
+        <p className="mini-label" style={{ marginTop: 12, marginBottom: 0 }}>
+          Если потратишь больше этой суммы за день — бот пришлёт предупреждение в чат.
         </p>
       </div>
 
-      {error && <p className="text-sm text-expense">{error}</p>}
-      {saved && <p className="text-sm text-income">Сохранено ✓</p>}
+      {error && <p className="error-text">{error}</p>}
+      {saved && <p className="success-text">Сохранено ✓</p>}
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="btn-primary w-full rounded-2xl py-4 text-base font-semibold disabled:opacity-60"
-      >
+      <button className="btn-primary" disabled={saving} onClick={handleSave}>
         {saving ? "Сохраняю…" : "Сохранить лимит"}
       </button>
-    </div>
+    </>
   );
 }

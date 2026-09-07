@@ -26,9 +26,7 @@ export default function AddPage() {
 
   useEffect(() => {
     if (!ready || !initData) return;
-    fetch(
-      `/api/categories?initData=${encodeURIComponent(initData)}&type=${type}`
-    )
+    fetch(`/api/categories?initData=${encodeURIComponent(initData)}&type=${type}`)
       .then((res) => res.json())
       .then((data) => {
         setCategories(data.categories || []);
@@ -55,18 +53,9 @@ export default function AddPage() {
   async function handleSubmit() {
     setError(null);
     const value = parseFloat(amount.replace(",", "."));
-    if (!value || value <= 0) {
-      setError("Введи корректную сумму.");
-      return;
-    }
-    if (!categoryId) {
-      setError("Выбери категорию.");
-      return;
-    }
-    if (!initData) {
-      setError("Открой приложение через Telegram.");
-      return;
-    }
+    if (!value || value <= 0) return setError("Введи корректную сумму.");
+    if (!categoryId) return setError("Выбери категорию.");
+    if (!initData) return setError("Открой приложение через Telegram.");
 
     setSubmitting(true);
     const res = await fetch("/api/transactions", {
@@ -83,115 +72,96 @@ export default function AddPage() {
     const data = await res.json();
     setSubmitting(false);
 
-    if (data.error) {
-      setError(data.error);
-      return;
-    }
-
+    if (data.error) return setError(data.error);
     router.push("/");
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-xl font-bold">Новая операция</h1>
+    <>
+      <div className="center-head">
+        <h1>Новая операция</h1>
+        <p>Заполни данные и сохрани</p>
+      </div>
 
-      <div className="flex rounded-2xl bg-tgsecondary p-1">
+      <div className="toggle">
         {(["expense", "income"] as const).map((t) => (
           <button
             key={t}
+            className={type === t ? "on" : ""}
             onClick={() => setType(t)}
-            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
-              type === t
-                ? t === "expense"
-                  ? "bg-expense text-white"
-                  : "bg-income text-white"
-                : "text-tghint"
-            }`}
           >
             {t === "expense" ? "Расход" : "Доход"}
           </button>
         ))}
       </div>
 
-      <div className="card px-5 py-6">
-        <label className="mb-2 block text-sm text-tghint">Сумма</label>
-        <input
-          type="number"
-          inputMode="decimal"
-          placeholder="0"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-tghint"
-        />
-      </div>
-
-      <div className="card px-5 py-5">
-        <p className="mb-3 text-sm text-tghint">Категория</p>
-        <div className="grid grid-cols-4 gap-3">
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setCategoryId(c.id)}
-              className={`flex flex-col items-center gap-1 rounded-2xl py-3 text-xs font-medium transition ${
-                categoryId === c.id
-                  ? "btn-primary"
-                  : "bg-tgsecondary text-tgtext"
-              }`}
-            >
-              <span className="text-xl">{c.icon}</span>
-              <span className="line-clamp-1">{c.name}</span>
-            </button>
-          ))}
-
-          {addingCategory ? (
-            <div className="col-span-4 flex gap-2">
-              <input
-                autoFocus
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Название"
-                className="flex-1 rounded-xl bg-tgsecondary px-3 py-2 text-sm outline-none"
-              />
-              <button
-                onClick={handleAddCategory}
-                className="rounded-xl btn-primary px-4 text-sm font-semibold"
-              >
-                ОК
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAddingCategory(true)}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-tghint py-3 text-xs font-medium text-tghint"
-            >
-              <span className="text-xl">＋</span>
-              Своя
-            </button>
-          )}
+      <div className="amount-box">
+        <p className="cap">Сумма</p>
+        <div className="amount-input-wrap">
+          <span className="cur">₸</span>
+          <input
+            inputMode="decimal"
+            placeholder="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
         </div>
       </div>
 
-      <div className="card px-5 py-5">
-        <label className="mb-2 block text-sm text-tghint">
-          Комментарий (необязательно)
-        </label>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <p className="cat-title">Категория</p>
+        <div className="cat-grid">
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              className={`cat ${categoryId === c.id ? "on" : ""}`}
+              onClick={() => setCategoryId(c.id)}
+            >
+              <span className="box">{c.icon}</span>
+              <span className="label">{c.name}</span>
+            </button>
+          ))}
+          {!addingCategory && (
+            <button className="cat" onClick={() => setAddingCategory(true)}>
+              <span className="box dashed">＋</span>
+              <span className="label">Своя</span>
+            </button>
+          )}
+        </div>
+
+        {addingCategory && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              autoFocus
+              className="text-input"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Название категории"
+              style={{ flex: 1 }}
+            />
+            <button className="btn-primary" style={{ width: "auto", padding: "0 20px" }} onClick={handleAddCategory}>
+              ОК
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="stack">
+        <label className="field-label" htmlFor="note">Комментарий</label>
         <input
+          id="note"
+          className="text-input"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Например: обед с коллегами"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-tghint"
+          placeholder="Например: обед с командой"
         />
       </div>
 
-      {error && <p className="text-sm text-expense">{error}</p>}
+      {error && <p className="error-text">{error}</p>}
 
-      <button
-        onClick={handleSubmit}
-        disabled={submitting}
-        className="btn-primary w-full rounded-2xl py-4 text-base font-semibold disabled:opacity-60"
-      >
-        {submitting ? "Сохраняю…" : "Сохранить"}
+      <button className="btn-primary" disabled={submitting} onClick={handleSubmit}>
+        {submitting ? "Сохраняю…" : "Сохранить операцию"}
       </button>
-    </div>
+    </>
   );
 }

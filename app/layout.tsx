@@ -22,10 +22,14 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className="min-h-screen bg-tgbg text-tgtext">
+      <body>
         <TelegramProvider>
-          <main className="mx-auto max-w-md pb-24 pt-4 px-4">{children}</main>
-          <BottomNav />
+          <div className="app-shell">
+            <div className="glow glow-1" />
+            <div className="glow glow-2" />
+            <div className="content">{children}</div>
+            <BottomNav />
+          </div>
         </TelegramProvider>
       </body>
     </html>
