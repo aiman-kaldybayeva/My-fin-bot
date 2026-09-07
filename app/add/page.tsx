@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTelegram } from "@/lib/TelegramContext";
+import { getCategoryIcon } from "@/lib/icons";
 
 interface Category {
   id: number;
@@ -111,16 +112,19 @@ export default function AddPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <p className="cat-title">Категория</p>
         <div className="cat-grid">
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              className={`cat ${categoryId === c.id ? "on" : ""}`}
-              onClick={() => setCategoryId(c.id)}
-            >
-              <span className="box">{c.icon}</span>
-              <span className="label">{c.name}</span>
-            </button>
-          ))}
+          {categories.map((c) => {
+            const Icon = getCategoryIcon(c.name, type);
+            return (
+              <button
+                key={c.id}
+                className={`cat ${categoryId === c.id ? "on" : ""}`}
+                onClick={() => setCategoryId(c.id)}
+              >
+                <span className="box"><Icon width={24} height={24} color={categoryId === c.id ? "#fff" : "#93b2ff"} /></span>
+                <span className="label">{c.name}</span>
+              </button>
+            );
+          })}
           {!addingCategory && (
             <button className="cat" onClick={() => setAddingCategory(true)}>
               <span className="box dashed">＋</span>

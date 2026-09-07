@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTelegram } from "@/lib/TelegramContext";
+import { IconTrendingUp, IconTrendingDown, getCategoryIcon } from "@/lib/icons";
 
 interface Summary {
   balance: number;
@@ -84,12 +85,12 @@ export default function DashboardPage() {
 
       <div className="grid2">
         <div className="card accent">
-          <div className="badge light">📈</div>
+          <div className="badge light"><IconTrendingUp width={20} height={20} color="#fff" /></div>
           <p className="cap">Доход за месяц</p>
           <p className="val">{fmt(summary.monthIncome)} ₸</p>
         </div>
         <div className="card ghost">
-          <div className="badge dark">📉</div>
+          <div className="badge dark"><IconTrendingDown width={20} height={20} color="#93b2ff" /></div>
           <p className="cap">Расход за месяц</p>
           <p className="val">{fmt(summary.monthExpense)} ₸</p>
         </div>
@@ -131,19 +132,22 @@ export default function DashboardPage() {
           </p>
         ) : (
           <ul className="tx-list">
-            {summary.recent.map((t) => (
-              <li key={t.id} className="tx">
-                <div className="ic">{t.category_icon}</div>
-                <div className="mid">
-                  <p className="t">{t.category_name}</p>
-                  {t.note && <p className="c">{t.note}</p>}
-                </div>
-                <span className={`a ${t.type === "income" ? "inc" : "exp"}`}>
-                  {t.type === "income" ? "+" : "\u2212"}
-                  {fmt(t.amount)} ₸
-                </span>
-              </li>
-            ))}
+            {summary.recent.map((t) => {
+              const Icon = getCategoryIcon(t.category_name, t.type);
+              return (
+                <li key={t.id} className="tx">
+                  <div className="ic"><Icon width={20} height={20} color="#93b2ff" /></div>
+                  <div className="mid">
+                    <p className="t">{t.category_name}</p>
+                    {t.note && <p className="c">{t.note}</p>}
+                  </div>
+                  <span className={`a ${t.type === "income" ? "inc" : "exp"}`}>
+                    {t.type === "income" ? "+" : "\u2212"}
+                    {fmt(t.amount)} ₸
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
