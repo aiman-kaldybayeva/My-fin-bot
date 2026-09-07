@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { IconHomeNav, IconSettings, IconPlus } from "@/lib/icons";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -11,19 +12,19 @@ export default function BottomNav() {
     <nav className="bottom">
       <div className="nav-inner">
         <Link href="/" className={`nav-item ${isActive("/") ? "on" : ""}`}>
-          <span>🏠</span>
+          <IconHomeNav width={22} height={22} />
           <span>Главная</span>
         </Link>
 
         <Link href="/add" className="nav-add" aria-label="Добавить операцию">
-          +
+          <IconPlus width={28} height={28} strokeWidth={2.6} color="#fff" />
         </Link>
 
         <Link
           href="/settings"
           className={`nav-item ${isActive("/settings") ? "on" : ""}`}
         >
-          <span>⚙️</span>
+          <IconSettings width={22} height={22} />
           <span>Настройки</span>
         </Link>
       </div>

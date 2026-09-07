@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useTelegram } from "@/lib/TelegramContext";
 import { IconTrendingUp, IconTrendingDown, getCategoryIcon } from "@/lib/icons";
+import LimitDial from "@/components/LimitDial";
 
 interface Summary {
   balance: number;
@@ -53,15 +53,19 @@ export default function DashboardPage() {
   const displayName = user?.first_name || user?.username || "друг";
   const initials = (user?.first_name?.[0] || "Ф") + (user?.username?.[0] || "");
 
+  async function handleLimitChange(newLimit: number) {
+    if (!initData || !summary) return;
+    setSummary({ ...summary, dailyLimit: newLimit });
+    await fetch("/api/limit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData, daily_limit: newLimit }),
+    }).catch(() => {});
+  }
+
   if (loading) return <p style={{ color: "var(--muted)", textAlign: "center", marginTop: 40 }}>Загрузка…</p>;
   if (error) return <p style={{ color: "var(--muted)", textAlign: "center", marginTop: 40 }}>{error}</p>;
   if (!summary) return null;
-
-  const hasLimit = summary.dailyLimit > 0;
-  const percent = hasLimit
-    ? Math.min(100, Math.round((summary.spentToday / summary.dailyLimit) * 100))
-    : 0;
-  const overLimit = hasLimit && summary.spentToday > summary.dailyLimit;
 
   return (
     <>
@@ -96,31 +100,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="panel">
-        <div className="row-between">
-          <p className="limit-title">Дневной лимит трат</p>
-          <p className="limit-nums">
-            {hasLimit ? `${fmt(summary.spentToday)} / ${fmt(summary.dailyLimit)} ₸` : "не задан"}
-          </p>
-        </div>
-        <div className="bar">
-          <span
-            className={overLimit ? "over" : ""}
-            style={{ width: `${hasLimit ? percent : 0}%` }}
-          />
-        </div>
-        {hasLimit ? (
-          <p className="limit-left">
-            {overLimit
-              ? `Превышение на ${fmt(summary.spentToday - summary.dailyLimit)} ₸`
-              : `Осталось ${fmt(summary.dailyLimit - summary.spentToday)} ₸ на сегодня`}
-          </p>
-        ) : (
-          <Link href="/settings" className="limit-left" style={{ color: "var(--muted)" }}>
-            Задать дневной лимит →
-          </Link>
-        )}
-      </div>
+      <LimitDial
+        spentToday={summary.spentToday}
+        dailyLimit={summary.dailyLimit}
+        onLimitChange={handleLimitChange}
+      />
+      <p className="dial-hint">Потяни точку по кругу, чтобы изменить дневной лимит</p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div className="section-title">
