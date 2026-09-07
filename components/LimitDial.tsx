@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
 interface LimitDialProps {
   spentToday: number;
@@ -13,9 +13,10 @@ const fmt = (n: number) =>
     Math.round(Math.abs(n))
   );
 
-// Interpolates between blue (low usage) and red (at/over the limit).
-function colorForRatio(ratio: number) {
-  const t = Math.min(1, Math.max(0, ratio));
+// Interpolates blue -> red across the dial's full 0..1 range (fixed "zones",
+// like a speedometer, independent of the current limit/spend ratio).
+function colorAt(position: number) {
+  const t = Math.min(1, Math.max(0, position));
   const from = [95, 132, 223]; // #5F84DF
   const to = [255, 90, 106]; // #FF5A6A
   const mix = from.map((c, i) => Math.round(c + (to[i] - c) * t));
@@ -31,6 +32,8 @@ function pointOnCircle(percent: number, radius: number) {
   };
 }
 
+const SEGMENTS = 120;
+
 export default function LimitDial({
   spentToday,
   dailyLimit,
@@ -39,8 +42,6 @@ export default function LimitDial({
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
 
-  // The dial's scale (0 -> maxScale) auto-grows so the current limit
-  // always sits comfortably within the ring, with room to drag higher.
   const maxScale = Math.max(
     20000,
     Math.ceil(((dailyLimit || 10000) * 2) / 5000) * 5000
@@ -57,19 +58,30 @@ export default function LimitDial({
   const limitPercent = Math.min(1, Math.max(0, liveLimit / maxScale));
   const spentPercent = Math.min(1, Math.max(0, spentToday / maxScale));
 
-  // How close today's spending is to the limit (drives the blue -> red color).
-  const ratio = liveLimit > 0 ? spentToday / liveLimit : 0;
-  const brightColor = colorForRatio(ratio);
-
-  // Pale arc = full range up to the limit. Bright arc (drawn on top) only
-  // covers the part actually spent, so what's left after it reads as paler.
-  const paleOffset = circumference * (1 - limitPercent);
-  const brightOffset = circumference * (1 - Math.min(spentPercent, limitPercent || spentPercent));
-
   const handlePos = pointOnCircle(limitPercent, radius);
   const markerPos = pointOnCircle(spentPercent, radius);
-
   const overLimit = dailyLimit > 0 && spentToday > dailyLimit;
+
+  // Build the gradient ring as many small colored arc slices: full color up
+  // to today's spend, faded from there up to the limit, nothing beyond it.
+  const segments = useMemo(() => {
+    const items: { key: number; color: string; opacity: number; dasharray: string; dashoffset: number }[] = [];
+    for (let i = 0; i < SEGMENTS; i++) {
+      const segStart = i / SEGMENTS;
+      const segEnd = (i + 1) / SEGMENTS;
+      if (segStart >= limitPercent) break;
+      const end = Math.min(segEnd, limitPercent);
+      const arcLen = (end - segStart) * circumference;
+      items.push({
+        key: i,
+        color: colorAt(segStart),
+        opacity: end <= spentPercent + 0.001 ? 1 : 0.25,
+        dasharray: `${arcLen} ${circumference - arcLen}`,
+        dashoffset: circumference * (1 - end),
+      });
+    }
+    return items;
+  }, [limitPercent, spentPercent, circumference]);
 
   const updateFromPointer = useCallback(
     (clientX: number, clientY: number) => {
@@ -115,30 +127,21 @@ export default function LimitDial({
         >
           <circle className="track" cx="120" cy="120" r={radius} />
 
-          {/* full range up to the limit, pale */}
-          <circle
-            className="prog prog-pale"
-            cx="120"
-            cy="120"
-            r={radius}
-            stroke={brightColor}
-            strokeOpacity={0.25}
-            strokeDasharray={circumference}
-            strokeDashoffset={paleOffset}
-            transform="rotate(-90 120 120)"
-          />
-
-          {/* actually spent, bright */}
-          <circle
-            className="prog"
-            cx="120"
-            cy="120"
-            r={radius}
-            stroke={brightColor}
-            strokeDasharray={circumference}
-            strokeDashoffset={brightOffset}
-            transform="rotate(-90 120 120)"
-          />
+          <g transform="rotate(-90 120 120)">
+            {segments.map((s) => (
+              <circle
+                key={s.key}
+                className="prog-seg"
+                cx="120"
+                cy="120"
+                r={radius}
+                stroke={s.color}
+                strokeOpacity={s.opacity}
+                strokeDasharray={s.dasharray}
+                strokeDashoffset={s.dashoffset}
+              />
+            ))}
+          </g>
 
           {/* marker: today's current spend level */}
           <circle className="marker" cx={markerPos.x} cy={markerPos.y} r={6} />
